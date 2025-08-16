@@ -165,14 +165,13 @@ const updateDietPlan = async (req, res) => {
     }
     const availablePantry = await Pantry.find({
       hospitalID: patient.hospitalID,
-    }).select("itemName quantity unit -_id");
+    }).select("itemName -_id");
+    const pantryItems = availablePantry.map((item) => item.itemName);
     const diseases = req.body.diseases.toString();
     const allergies = req.body.allergies.toString();
     const patientInfo =
       "Age: " +
       patient.age +
-      "\nGender: " +
-      patient.gender +
       "\nLow Sugar Diet: " +
       req.body.isLowSugarDiet +
       "\nNo Salt Diet: " +
@@ -181,9 +180,9 @@ const updateDietPlan = async (req, res) => {
       diseases +
       "\nAllergies: " +
       allergies;
-    const aiGenDietPlan = await generateDietPlan(patientInfo, availablePantry);
+    const aiGenDietPlan = await generateDietPlan(patientInfo, pantryItems);
+    if(!aiGenDietPlan) return res.status(500).json({message:"Error while generating diet plan",success:false})
     patient.dietPlan = aiGenDietPlan;
-
     await patient.save();
     res.status(200).json({
       message: "Diet plan updated successfully",

@@ -1,15 +1,10 @@
-import { OpenAI } from "openai";
+import OpenAI from "openai";
+
+const endpoint = "https://models.github.ai/inference";
+const model = "openai/gpt-4.1-mini";
 
 const generateDietPlan = async (patientInfo, availablePantry) => {
   try {
-    const openai = new OpenAI({
-      baseURL: "https://openrouter.ai/api/v1",
-      apiKey: process.env.COHERE_API_KEY,
-      defaultHeaders: {
-        "HTTP-Referer": "<YOUR_SITE_URL>", // Optional. Site URL for rankings on openrouter.ai.
-        "X-Title": "<YOUR_SITE_NAME>", // Optional. Site title for rankings on openrouter.ai.
-      },
-    });
     const prompt = `Generate a JSON object with 3 meals: morning, evening, and night (eg.- {
   morning: {
     name: 'Vegetable Omelette',
@@ -25,7 +20,7 @@ const generateDietPlan = async (patientInfo, availablePantry) => {
 }
 ). Each meal must include:
 - A "name" (the dish name),
-- An "ingredients" array (try to use pantry items from the given pantry list 'not necessary' ).
+- An "ingredients" array (try to use pantry items from the given pantry list 'not necessary').
 
 The meals must:
 - Be suitable for the patient's dietary restrictions,
@@ -41,29 +36,32 @@ Return only the JSON object. No explanation, no extra text.
 '''${availablePantry}'''
 `;
 
-    const completion = await openai.chat.completions.create({
-      model: "openai/gpt-4o",
+    const client = new OpenAI({ baseURL: endpoint, apiKey: process.env.GITHUB_TOKEN });
+
+    const response = await client.chat.completions.create({
       messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
+        { role: "system", content: "You are a helpful nutritionist." },
+        { role: "user", content: prompt },
       ],
-      max_tokens: 200,
-      temperature: 0.8, // Controls randomness of response
-      top_p: 1, // Nucleus sampling, often kept at 1
-      frequency_penalty: 0, // Penalize repeated phrases
-      presence_penalty: 0, // Encourage introducing new topics
+      temperature: 0.7,
+      top_p: 1,
+      model: model,
     });
-    const dietPlan = completion.choices[0].message.content
-      .replace(/```json/i, "")
-      .replace(/```/g, "")
-      .trim();
-    const dietPlanJson = JSON.parse(dietPlan);
+
+    const rawOutput = response.choices[0].message.content.trim();
+    const cleanedOutput = rawOutput
+    .replace(/```json/i, "")
+    .replace(/```/g, "")
+    .trim();
+    
+    const dietPlanJson = JSON.parse(cleanedOutput);
     return dietPlanJson;
   } catch (error) {
-    console.log(error);
-    return;
+    console.log(
+      "Error generating diet plan:",
+      error.response?.data || error.message
+    );
+    return null;
   }
 };
 
