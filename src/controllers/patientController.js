@@ -181,7 +181,7 @@ const updateDietPlan = async (req, res) => {
       "\nAllergies: " +
       allergies;
     const aiGenDietPlan = await generateDietPlan(patientInfo, pantryItems);
-    if(!aiGenDietPlan) return res.status(500).json({message:"Error while generating diet plan",success:false})
+    if(!aiGenDietPlan) return res.status(500).json({message:"No credits left",success:false})
     patient.dietPlan = aiGenDietPlan;
     await patient.save();
     res.status(200).json({
